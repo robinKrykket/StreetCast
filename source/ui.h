@@ -2,19 +2,35 @@
 #pragma once
 #include "gfx.h"
 
-#define COL_BG       0xEEF2F6FF
-#define COL_BG_TOP   0xF8FAFCFF
-#define COL_WHITE    0xFFFFFFFF
-#define COL_BORDER   0xC6CFD9FF
-#define COL_SHADOW   0xD8DFE7FF
-#define COL_LINE     0xE1E7EEFF
-#define COL_TEXT     0x454B53FF
-#define COL_TEXT2    0x8A929CFF
-#define COL_GLOW     0x36C5F7FF // the Wii-remote-LED blue
-#define COL_BLUE     0x1BA4DCFF // darker blue for text/icons on white
-#define COL_TRACK    0xDCE3EAFF
-#define COL_GREEN    0x4DBB78FF
-#define COL_RED      0xE5625CFF
+// Colours come from the active palette so the whole UI can switch between light and dark.
+typedef struct {
+	Color bg, bg_top; // screen background (bottom / top of the gradient)
+	Color surface;    // buttons, cards, bars: white in light mode, black in dark mode
+	Color border, shadow, line;
+	Color text, text2;
+	Color glow;       // the Wii-remote-LED blue focus glow
+	Color blue;       // blue for text/icons on a surface
+	Color track;
+	Color green, red;
+} Palette;
+
+extern Palette ui_pal;
+void ui_set_dark(bool dark);
+bool ui_is_dark(void);
+
+#define COL_BG       (ui_pal.bg)
+#define COL_BG_TOP   (ui_pal.bg_top)
+#define COL_WHITE    (ui_pal.surface)
+#define COL_BORDER   (ui_pal.border)
+#define COL_SHADOW   (ui_pal.shadow)
+#define COL_LINE     (ui_pal.line)
+#define COL_TEXT     (ui_pal.text)
+#define COL_TEXT2    (ui_pal.text2)
+#define COL_GLOW     (ui_pal.glow)
+#define COL_BLUE     (ui_pal.blue)
+#define COL_TRACK    (ui_pal.track)
+#define COL_GREEN    (ui_pal.green)
+#define COL_RED      (ui_pal.red)
 
 #define TS_BIG   0.62f
 #define TS_BODY  0.5f

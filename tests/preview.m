@@ -10,6 +10,7 @@
 #include "../source/plat.h"
 #include "../source/player.h"
 #include "../source/store.h"
+#include "../source/ui.h"
 #include "../source/util.h"
 
 static CGContextRef ctx; // current target
@@ -75,7 +76,8 @@ float gfx_text_width(const char* s, float scale)
 int sys_battery(void) { return 4; }
 bool sys_charging(void) { return false; }
 int sys_wifi(void) { return 3; }
-void sys_clock(int* h, int* m) { *h = 12; *m = 45; }
+static int fake_hour = 12;
+void sys_clock(int* h, int* m) { *h = fake_hour; *m = fake_hour == 7 || fake_hour == 16 ? 59 : (fake_hour == 12 ? 45 : 0); }
 static const char* kb_answer = "";
 bool sys_keyboard(const char* hint, const char* initial, char* out, int cap) { (void)hint; (void)initial; snprintf(out, cap, "%s", kb_answer); return out[0] != 0; }
 
@@ -238,7 +240,21 @@ int main(int argc, char** argv)
 		press(K_X); idle(5); snapshot("after_stop");
 		press(K_B); press(K_B); idle(3);
 		press(K_DOWN); press(K_DOWN); press(K_A); idle(10); snapshot("settings");
-		press(K_DOWN); press(K_DOWN); press(K_DOWN); press(K_A); idle(5); snapshot("about");
+		press(K_A); idle(5); snapshot("settings_dark");   // Theme: Light -> Dark
+		press(K_A); idle(5); printf("theme=%d (want 2, auto) dark=%d at fake 12:45 (want 0)\n", settings.theme, ui_is_dark());
+		fake_hour = 19; idle(70); printf("auto at 19:00 dark=%d (want 1)\n", ui_is_dark()); snapshot("settings_auto_evening");
+		fake_hour = 7; idle(70); printf("auto at 07:59 dark=%d (want 1)\n", ui_is_dark());
+		fake_hour = 8; idle(70); printf("auto at 08:00 dark=%d (want 0)\n", ui_is_dark());
+		fake_hour = 16; idle(70); printf("auto at 16:59 dark=%d (want 0)\n", ui_is_dark());
+		fake_hour = 17; idle(70); printf("auto at 17:00 dark=%d (want 1)\n", ui_is_dark());
+		settings.theme = THEME_DARK; idle(70);
+		press(K_B); idle(5); snapshot("home_dark");
+		press(K_UP); press(K_UP); press(K_LEFT); press(K_A); idle(5); press(K_DOWN); press(K_A); idle(15); snapshot("episodes_dark");
+		press(K_A); idle(5); snapshot("menu_dark"); press(K_B);
+		press(K_SELECT); idle(10); snapshot("player_dark"); press(K_B); idle(3);
+		press(K_B); press(K_B); idle(3); press(K_DOWN); press(K_DOWN); press(K_A); idle(5);
+		settings.theme = THEME_LIGHT; fake_hour = 12; idle(70);
+		press(K_DOWN); press(K_DOWN); press(K_DOWN); press(K_DOWN); press(K_A); idle(5); snapshot("about");
 		press(K_A); press(K_B);
 		// quit confirm while a download runs
 		press(K_UP); press(K_UP); press(K_A); idle(5); press(K_A); idle(5); press(K_DOWN); press(K_DOWN); press(K_A); idle(3); press(K_A); idle(3);

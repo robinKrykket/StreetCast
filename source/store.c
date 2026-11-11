@@ -20,7 +20,7 @@ Sub subs[MAX_SUBS];
 int nsubs;
 DlEntry dls[MAX_DLS];
 int ndls;
-Settings settings = {true, 15, 30};
+Settings settings = {true, 15, 30, THEME_LIGHT};
 
 static EpState states[MAX_STATE];
 static int nstates;
@@ -342,6 +342,7 @@ static void settings_load(void)
 		if (sscanf(line, "verify_tls=%d", &v) == 1) settings.verify_tls = v != 0;
 		else if (sscanf(line, "skip_back=%d", &v) == 1 && v >= 5 && v <= 120) settings.skip_back = v;
 		else if (sscanf(line, "skip_fwd=%d", &v) == 1 && v >= 5 && v <= 120) settings.skip_fwd = v;
+		else if (sscanf(line, "theme=%d", &v) == 1 && v >= THEME_LIGHT && v <= THEME_AUTO) settings.theme = v;
 	}
 	fclose(f);
 }
@@ -351,7 +352,7 @@ static void settings_save(void)
 	char tmp[96], final[96];
 	FILE* f = open_tmp("settings.txt", tmp, final, sizeof(tmp));
 	if (!f) return;
-	fprintf(f, "verify_tls=%d\nskip_back=%d\nskip_fwd=%d\n", settings.verify_tls ? 1 : 0, settings.skip_back, settings.skip_fwd);
+	fprintf(f, "verify_tls=%d\nskip_back=%d\nskip_fwd=%d\ntheme=%d\n", settings.verify_tls ? 1 : 0, settings.skip_back, settings.skip_fwd, settings.theme);
 	commit_tmp(f, tmp, final);
 }
 

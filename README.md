@@ -40,6 +40,8 @@ and please open an issue with a photo of any error (network errors end in a code
 - **Skip back / forward** with L and R from any screen (10/15/30 s back, 15/30/45/60 s forward).
   Hold L for 3 seconds to restart the episode; hold R for 5 seconds to jump to the next one.
 - **Touch or buttons**: every screen works with the D-Pad and A/B, or by tapping and dragging.
+- **Light and dark themes**: in Settings choose Light, Dark (white surfaces become black), or
+  Auto, which follows the console's clock: light from 8am to 5pm, dark from 5pm to 8am.
 - **Top screen** shows the selected episode's details, or what's playing, with clock, Wi-Fi and
   battery.
 

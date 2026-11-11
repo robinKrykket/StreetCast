@@ -15,6 +15,8 @@
 #include "util.h"
 
 #define APP_VERSION "1.0"
+// Scrim drawn behind message boxes and overlays.
+#define COL_DIM (ui_is_dark() ? 0x000000A8u : 0x26323F8Cu)
 
 typedef enum { SCR_HOME, SCR_PODCASTS, SCR_ADD, SCR_SEARCH, SCR_EPISODES, SCR_DOWNLOADS, SCR_PLAYER, SCR_SETTINGS, SCR_COUNT } Screen;
 
@@ -229,7 +231,7 @@ static void menu_draw(void)
 	float px, py, pw, ph;
 	int bl;
 	menu_layout(&px, &py, &pw, &ph, &bl);
-	gfx_rect(0, 0, BOT_W, SCREEN_H, 0x26323F8C);
+	gfx_rect(0, 0, BOT_W, SCREEN_H, COL_DIM);
 	ui_rrect(px - 1, py - 1, pw + 2, ph + 2, 15, COL_BORDER);
 	ui_rrect(px, py, pw, ph, 14, COL_BG_TOP);
 	ui_text_fit(menu.title, BOT_W / 2, py + 10, pw - 28, TS_BODY, COL_TEXT, 1);
@@ -1038,17 +1040,36 @@ static int next_opt(const int* opts, int n, int cur)
 	return opts[0];
 }
 
+// Auto theme: light from 8:00 until 17:00 by the console's clock, dark the rest of the time.
+#define AUTO_LIGHT_FROM 8
+#define AUTO_LIGHT_UNTIL 17
+
+static void apply_theme(void)
+{
+	bool dark = settings.theme == THEME_DARK;
+	if (settings.theme == THEME_AUTO) {
+		int h, m;
+		sys_clock(&h, &m);
+		dark = h < AUTO_LIGHT_FROM || h >= AUTO_LIGHT_UNTIL;
+	}
+	if (dark != ui_is_dark()) ui_set_dark(dark);
+}
+
+#define SETTINGS_ROWS 5
+
 static void settings_input(void)
 {
-	int act = list_input(SCR_SETTINGS, 4);
-	if (act == 0) {
+	int act = list_input(SCR_SETTINGS, SETTINGS_ROWS);
+	if (act == 0) settings.theme = (settings.theme + 1) % 3;
+	else if (act == 1) {
 		settings.verify_tls = !settings.verify_tls;
 		net_verify_tls = settings.verify_tls;
-	} else if (act == 1) settings.skip_back = next_opt(skip_back_opts, 3, settings.skip_back);
-	else if (act == 2) settings.skip_fwd = next_opt(skip_fwd_opts, 4, settings.skip_fwd);
-	else if (act == 3)
+	} else if (act == 2) settings.skip_back = next_opt(skip_back_opts, 3, settings.skip_back);
+	else if (act == 3) settings.skip_fwd = next_opt(skip_fwd_opts, 4, settings.skip_fwd);
+	else if (act == 4)
 		msg("StreetCast " APP_VERSION, "A podcast player for Nintendo 3DS. Your podcasts and downloads live in /3ds/StreetCast on the SD card.");
-	if (act >= 0 && act < 3) {
+	if (act >= 0 && act < 4) {
+		apply_theme();
 		settings_touch();
 		store_flush();
 	}
@@ -1107,6 +1128,7 @@ static void housekeeping(void)
 		str_copy(last_id, sizeof(last_id), pi.id);
 	}
 	// Remember the position every 10 seconds so a dead battery loses very little.
+	if (ui_frame % 60 == 0) apply_theme();
 	if (ui_frame % 600 == 0) {
 		if (pi.state == PL_PLAYING) save_position();
 		store_flush();
@@ -1187,6 +1209,7 @@ void app_init(bool sound)
 {
 	sound_ok = sound;
 	net_verify_tls = settings.verify_tls;
+	apply_theme();
 	stack[0] = SCR_HOME;
 	depth = 0;
 	player_get(&pi);
@@ -1230,8 +1253,8 @@ static void draw_search_header(const char* title, const char* filter, int matche
 	if (filter[0]) snprintf(t, sizeof(t), "\"%s\"  \xC2\xB7  %d", filter, matches);
 	draw_header(filter[0] ? t : title);
 	ui_rrect(BOT_W - 58, 5, 52, 18, 9, filter[0] ? COL_GLOW : COL_BG);
-	ui_icon(IC_SEARCH, BOT_W - 44, 14, 11, filter[0] ? COL_WHITE : COL_TEXT2, filter[0] ? COL_GLOW : COL_BG);
-	ui_text(G_Y, BOT_W - 31, 7, TS_SMALL, filter[0] ? COL_WHITE : COL_TEXT2);
+	ui_icon(IC_SEARCH, BOT_W - 44, 14, 11, filter[0] ? 0xFFFFFFFF : COL_TEXT2, filter[0] ? COL_GLOW : COL_BG);
+	ui_text(G_Y, BOT_W - 31, 7, TS_SMALL, filter[0] ? 0xFFFFFFFF : COL_TEXT2);
 }
 
 static void draw_footer(const char* hints)
@@ -1504,27 +1527,32 @@ static void player_draw(void)
 
 static void settings_draw(void)
 {
-	char val[4][24];
-	snprintf(val[0], 24, "%s", settings.verify_tls ? "On" : "Off");
-	snprintf(val[1], 24, "%d seconds", settings.skip_back);
-	snprintf(val[2], 24, "%d seconds", settings.skip_fwd);
-	snprintf(val[3], 24, "v" APP_VERSION);
-	static const char* names[4] = {"Verify HTTPS", "Skip back (" G_L ")", "Skip forward (" G_R ")", "About StreetCast"};
-	static const char* notes[4] = {"Turn off only if feeds fail with a security error", "How far the rewind button jumps", "How far the forward button jumps", "Version and where your files are kept"};
-	for (int i = 0; i < 4; i++) {
+	char val[SETTINGS_ROWS][24];
+	snprintf(val[0], 24, "%s", settings.theme == THEME_DARK ? "Dark" : settings.theme == THEME_AUTO ? "Auto" : "Light");
+	snprintf(val[1], 24, "%s", settings.verify_tls ? "On" : "Off");
+	snprintf(val[2], 24, "%d seconds", settings.skip_back);
+	snprintf(val[3], 24, "%d seconds", settings.skip_fwd);
+	snprintf(val[4], 24, "v" APP_VERSION);
+	static const char* names[SETTINGS_ROWS] = {"Theme", "Verify HTTPS", "Skip back (" G_L ")", "Skip forward (" G_R ")", "About StreetCast"};
+	static const char* notes[SETTINGS_ROWS] = {
+		"Light, dark, or auto (dark from 5pm to 8am)", "Turn off only if feeds fail with a security error", "How far the rewind button jumps",
+		"How far the forward button jumps", "Version and where your files are kept",
+	};
+	for (int i = 0; i < SETTINGS_ROWS; i++) {
 		float y = row_begin(SCR_SETTINGS, i);
 		if (y < -500) continue;
 		ui_text(names[i], ROW_X + 14, y + 4, TS_BODY, COL_TEXT);
-		ui_text_fit(notes[i], ROW_X + 14, y + 21, ROW_W - 28, TS_SMALL - 0.02f, COL_TEXT2, 0);
+		ui_text_fit(notes[i], ROW_X + 14, y + 21, ROW_W - 80, TS_SMALL - 0.02f, COL_TEXT2, 0);
 		ui_text_right(val[i], ROW_X + ROW_W - 14, y + 5, TS_BODY - 0.04f, COL_BLUE);
 	}
+	list_scrollbar(SCR_SETTINGS, SETTINGS_ROWS);
 	draw_header("Settings");
 	draw_footer(G_A " Change   " G_B " Back");
 }
 
 static void busy_draw(void)
 {
-	gfx_rect(0, 0, BOT_W, SCREEN_H, 0x26323F8C);
+	gfx_rect(0, 0, BOT_W, SCREEN_H, COL_DIM);
 	float w = 220, h = 104, x = (BOT_W - w) / 2, y = (SCREEN_H - h) / 2;
 	ui_rrect(x - 1, y - 1, w + 2, h + 2, 17, COL_BORDER);
 	ui_rrect(x, y, w, h, 16, COL_BG_TOP);
@@ -1557,7 +1585,7 @@ void app_draw_bottom(void)
 	default: break;
 	}
 	if (closing) {
-		gfx_rect(0, 0, BOT_W, SCREEN_H, 0x26323F8C);
+		gfx_rect(0, 0, BOT_W, SCREEN_H, COL_DIM);
 		ui_rrect(59, 91, 202, 58, 17, COL_BORDER);
 		ui_rrect(60, 92, 200, 56, 16, COL_BG_TOP);
 		ui_text_center("Closing StreetCast\xE2\x80\xA6", BOT_W / 2, 112, TS_BODY, COL_TEXT);

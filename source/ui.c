@@ -6,6 +6,40 @@
 
 int ui_frame;
 
+static const Palette PAL_LIGHT = {
+	.bg = 0xEEF2F6FF, .bg_top = 0xF8FAFCFF, .surface = 0xFFFFFFFF,
+	.border = 0xC6CFD9FF, .shadow = 0xD8DFE7FF, .line = 0xE1E7EEFF,
+	.text = 0x454B53FF, .text2 = 0x8A929CFF,
+	.glow = 0x36C5F7FF, .blue = 0x1BA4DCFF, .track = 0xDCE3EAFF,
+	.green = 0x4DBB78FF, .red = 0xE5625CFF,
+};
+
+// Dark mode: every white surface becomes black, on a charcoal background, with the same glow.
+static const Palette PAL_DARK = {
+	.bg = 0x1C1F24FF, .bg_top = 0x24282EFF, .surface = 0x000000FF,
+	.border = 0x3B424CFF, .shadow = 0x121417FF, .line = 0x2B3037FF,
+	.text = 0xE8ECF0FF, .text2 = 0x8E97A2FF,
+	.glow = 0x36C5F7FF, .blue = 0x52CDF9FF, .track = 0x30363EFF,
+	.green = 0x62CC8CFF, .red = 0xF0746EFF,
+};
+
+Palette ui_pal = {
+	.bg = 0xEEF2F6FF, .bg_top = 0xF8FAFCFF, .surface = 0xFFFFFFFF,
+	.border = 0xC6CFD9FF, .shadow = 0xD8DFE7FF, .line = 0xE1E7EEFF,
+	.text = 0x454B53FF, .text2 = 0x8A929CFF,
+	.glow = 0x36C5F7FF, .blue = 0x1BA4DCFF, .track = 0xDCE3EAFF,
+	.green = 0x4DBB78FF, .red = 0xE5625CFF,
+};
+static bool dark_now;
+
+void ui_set_dark(bool dark)
+{
+	dark_now = dark;
+	ui_pal = dark ? PAL_DARK : PAL_LIGHT;
+}
+
+bool ui_is_dark(void) { return dark_now; }
+
 Color ui_mix(Color a, Color b, float t)
 {
 	if (t < 0) t = 0;

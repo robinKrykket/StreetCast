@@ -24,9 +24,12 @@ typedef struct {
 	long long size;
 } DlEntry;
 
+enum { THEME_LIGHT = 0, THEME_DARK = 1, THEME_AUTO = 2 };
+
 typedef struct {
 	bool verify_tls;
 	int skip_back, skip_fwd; // seconds
+	int theme;               // THEME_LIGHT / THEME_DARK / THEME_AUTO
 } Settings;
 
 extern Sub subs[MAX_SUBS];
