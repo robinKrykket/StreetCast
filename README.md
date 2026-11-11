@@ -32,11 +32,13 @@ and please open an issue with a photo of any error (network errors end in a code
 - **Download** episodes to the SD card for offline listening. Downloads run in the background
   one at a time, show progress, and resume where they stopped.
 - **Lid-closed listening**: with headphones plugged in, playback (and downloads) continue with
-  the console shut, the screens off, and L/R still skipping.
+  the console shut and the screens off. Buttons are ignored while it is shut, so nothing skips
+  in a pocket.
 - **Remembers your place** in every episode, and marks finished episodes as played.
 - **Search inside a list**: filter a podcast's episodes, or your downloads, by words in the
   title or description.
 - **Skip back / forward** with L and R from any screen (10/15/30 s back, 15/30/45/60 s forward).
+  Hold L for 3 seconds to restart the episode; hold R for 5 seconds to jump to the next one.
 - **Touch or buttons**: every screen works with the D-Pad and A/B, or by tapping and dragging.
 - **Top screen** shows the selected episode's details, or what's playing, with clock, Wi-Fi and
   battery.
@@ -66,13 +68,17 @@ breaks secure (HTTPS) connections.
 
 | Where | Controls |
 | --- | --- |
-| Everywhere | **A** select, **B** back, **L / R** skip back / forward, **SELECT** jump to Now Playing, **START** quit |
+| Everywhere | **A** select, **B** back, **L / R** skip back / forward, hold **L** 3 s restart episode, hold **R** 5 s next episode, **SELECT** jump to Now Playing, **START** quit |
 | My Podcasts | **A** open, **X** update all, **Y** options (update / unsubscribe) |
 | Episode list | **A** options (stream, download, mark played), **X** check for new episodes, **Y** search |
 | Downloads | **A** options (play, delete, cancel), **Y** search |
 | Now Playing | **A** play / pause, **X** stop, D-Pad to pick a button, touch the bar to scrub |
 
 In a search, **B** clears it. START asks before quitting if downloads are running.
+
+"Next episode" means the one listed below the playing episode in the list you started it from
+(the next older episode in a podcast, or the next item in Downloads). L and R do nothing while
+the lid is closed.
 
 ### Adding podcasts from a computer
 

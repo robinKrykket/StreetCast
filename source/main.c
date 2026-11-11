@@ -158,9 +158,9 @@ int main(void)
 		Input in = {0};
 		u32 down = hidKeysDown(), held = hidKeysHeld(), up = hidKeysUp(), rep = hidKeysDownRepeat();
 		if (!open) {
-			// Lid shut: only the shoulder buttons are reachable (skip back / forward).
-			u32 mask = KEY_L | KEY_R | KEY_ZL | KEY_ZR;
-			down &= mask; held &= mask; up &= mask; rep &= mask;
+			// Lid shut: ignore every button, the shoulder buttons included, so nothing skips
+			// by accident in a pocket or bag.
+			down = held = up = rep = 0;
 		}
 		in.down = map_keys(down);
 		in.held = map_keys(held);

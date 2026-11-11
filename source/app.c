@@ -488,7 +488,7 @@ static void open_podcast(int i, bool allow_fetch)
 	}
 }
 
-static void start_play(const char* id, const char* title, const char* podcast, const char* url, int duration, bool from_start)
+static void start_play(const char* id, const char* title, const char* podcast, const char* url, int duration, bool from_start, bool show)
 {
 	if (!sound_ok) {
 		msg("Sound isn't available", "DSP firmware is missing. Open the Rosalina menu (L+Down+Select), choose Miscellaneous options > Dump DSP firmware, then restart StreetCast.");
@@ -510,7 +510,7 @@ static void start_play(const char* id, const char* title, const char* podcast, c
 	last_state = pi.state;
 	str_copy(last_id, sizeof(last_id), pi.id);
 	player_focus = 1;
-	push(SCR_PLAYER);
+	if (show) push(SCR_PLAYER);
 }
 
 static bool playing_file(const char* id)
@@ -531,6 +531,50 @@ static void delete_download(const char* id)
 
 enum { M_PLAY, M_PLAY_START, M_DOWNLOAD, M_CANCEL_DL, M_RETRY_DL, M_DELETE, M_MARK, M_REFRESH, M_UNSUB, M_YES, M_NO };
 
+// "Up next": the episodes that followed the playing one in the list it was started from.
+// Holding R skips to the first of them. `pend` is the same thing for the open menu's episode,
+// promoted to the live queue only if the user actually presses Play.
+#define QUEUE_MAX 12
+static Episode queue[QUEUE_MAX], pend[QUEUE_MAX];
+static char queue_podcast[QUEUE_MAX][128], pend_podcast[QUEUE_MAX][128];
+static int queue_n, pend_n;
+
+static void pend_add(const Episode* e, const char* podcast)
+{
+	if (pend_n == QUEUE_MAX) return;
+	pend[pend_n] = *e;
+	str_copy(pend_podcast[pend_n++], 128, podcast);
+}
+
+static void queue_commit(void)
+{
+	memcpy(queue, pend, sizeof(queue));
+	memcpy(queue_podcast, pend_podcast, sizeof(queue_podcast));
+	queue_n = pend_n;
+}
+
+static void skip_next(void)
+{
+	// Drop entries that can no longer be played (a deleted download with no stream address).
+	while (queue_n > 0 && dls_find(queue[0].id) < 0 && !queue[0].url[0]) {
+		memmove(&queue[0], &queue[1], (size_t)(queue_n - 1) * sizeof(Episode));
+		memmove(queue_podcast[0], queue_podcast[1], (size_t)(queue_n - 1) * 128);
+		queue_n--;
+	}
+	if (queue_n == 0) {
+		toast("No next episode in this list", NULL);
+		return;
+	}
+	Episode e = queue[0];
+	char podcast[128];
+	str_copy(podcast, sizeof(podcast), queue_podcast[0]);
+	memmove(&queue[0], &queue[1], (size_t)(queue_n - 1) * sizeof(Episode));
+	memmove(queue_podcast[0], queue_podcast[1], (size_t)(queue_n - 1) * 128);
+	queue_n--;
+	start_play(e.id, e.title, podcast, e.url, e.duration, false, false);
+	toast("Next: %s", e.title);
+}
+
 // The episode a menu is about.
 static Episode m_ep;
 static char m_podcast[128];
@@ -539,8 +583,11 @@ static int m_sub;
 static void on_episode_menu(int id)
 {
 	switch (id) {
-	case M_PLAY: start_play(m_ep.id, m_ep.title, m_podcast, m_ep.url, m_ep.duration, false); break;
-	case M_PLAY_START: start_play(m_ep.id, m_ep.title, m_podcast, m_ep.url, m_ep.duration, true); break;
+	case M_PLAY:
+	case M_PLAY_START:
+		queue_commit();
+		start_play(m_ep.id, m_ep.title, m_podcast, m_ep.url, m_ep.duration, id == M_PLAY_START, true);
+		break;
 	case M_DOWNLOAD:
 		if (dl_enqueue(&m_ep, m_podcast)) toast("Downloading %s", m_ep.title);
 		else msg("Download queue is full", "Wait for some downloads to finish first.");
@@ -800,15 +847,27 @@ static void episodes_input(void)
 		if (cur_sub >= 0 && cur_sub < nsubs) start_refresh(&cur_sub, 1, false, false);
 		return;
 	}
-	if (act >= 0 && act < ep_nview) episode_menu(&cur_feed.eps[ep_view[act]], cur_feed.title);
+	if (act >= 0 && act < ep_nview) {
+		// Up next = the playable episodes below this one, in the order shown.
+		pend_n = 0;
+		for (int k = act + 1; k < ep_nview && pend_n < QUEUE_MAX; k++) {
+			const Episode* e = &cur_feed.eps[ep_view[k]];
+			if (e->kind == EP_MP3 || dls_find(e->id) >= 0) pend_add(e, cur_feed.title);
+		}
+		episode_menu(&cur_feed.eps[ep_view[act]], cur_feed.title);
+	}
 }
 
 static int g_njobs; // download jobs listed above the finished downloads this frame
 
 static void on_download_menu(int id)
 {
-	if (id == M_PLAY || id == M_PLAY_START) start_play(m_ep.id, m_ep.title, m_podcast, NULL, m_ep.duration, id == M_PLAY_START);
-	else on_episode_menu(id);
+	if (id == M_PLAY || id == M_PLAY_START) {
+		queue_commit();
+		start_play(m_ep.id, m_ep.title, m_podcast, NULL, m_ep.duration, id == M_PLAY_START, true);
+	} else {
+		on_episode_menu(id);
+	}
 }
 
 // Recompute what the Downloads screen lists. Called before input and before drawing, because
@@ -839,6 +898,17 @@ static void downloads_input(void)
 		menu_add(j.state == DJ_FAILED ? "Remove from queue" : "Cancel download", M_CANCEL_DL);
 		menu_add("Close", M_NO);
 	} else {
+		// Up next = the downloads below this one, in the order shown.
+		pend_n = 0;
+		for (int k = act - g_njobs + 1; k < dl_nview && pend_n < QUEUE_MAX; k++) {
+			const DlEntry* n = &dls[dl_view[k]];
+			Episode e;
+			memset(&e, 0, sizeof(e));
+			str_copy(e.id, sizeof(e.id), n->id);
+			str_copy(e.title, sizeof(e.title), n->title);
+			e.duration = n->duration;
+			pend_add(&e, n->podcast);
+		}
 		DlEntry* d = &dls[dl_view[act - g_njobs]];
 		memset(&m_ep, 0, sizeof(m_ep));
 		str_copy(m_ep.id, sizeof(m_ep.id), d->id);
@@ -873,6 +943,44 @@ static void seek_rel(int delta)
 	if (!has_media()) return;
 	player_get(&pi);
 	player_seek(pi.pos + delta);
+}
+
+#define HOLD_RESTART_MS 3000
+#define HOLD_NEXT_MS 5000
+
+// L / R (only delivered while the lid is open): a press skips back / forward in the episode
+// straight away; keeping L down for 3 s returns to the start, keeping R down for 5 s moves on
+// to the next episode in the list.
+static void shoulder_keys(void)
+{
+	static uint64_t l_since, r_since; // when the current hold began (0 = not held)
+	static bool l_done, r_done;       // long-press action already fired for this hold
+	uint64_t now = plat_time_ms();
+
+	if (in.down & K_L) {
+		seek_rel(-settings.skip_back);
+		l_since = now;
+		l_done = false;
+	} else if (!(in.held & K_L)) {
+		l_since = 0;
+	} else if (l_since && !l_done && now - l_since >= HOLD_RESTART_MS) {
+		l_done = true;
+		if (has_media()) {
+			player_seek(0);
+			toast("Back to the start", NULL);
+		}
+	}
+
+	if (in.down & K_R) {
+		seek_rel(settings.skip_fwd);
+		r_since = now;
+		r_done = false;
+	} else if (!(in.held & K_R)) {
+		r_since = 0;
+	} else if (r_since && !r_done && now - r_since >= HOLD_NEXT_MS) {
+		r_done = true;
+		if (has_media()) skip_next();
+	}
 }
 
 static void stop_playback(void)
@@ -1047,8 +1155,7 @@ bool app_update(const Input* input)
 
 	// Keys that work everywhere.
 	if ((in.down & K_SELECT) && has_media()) push(SCR_PLAYER);
-	if (in.down & K_L) seek_rel(-settings.skip_back);
-	if (in.down & K_R) seek_rel(settings.skip_fwd);
+	shoulder_keys();
 
 	Screen s = cur_screen();
 	if (depth > 0 && ((in.down & K_B) || tapped(0, 0, 64, HEADER_H))) {
@@ -1392,7 +1499,7 @@ static void player_draw(void)
 	ui_text_center(lab, 254, 174, TS_SMALL, COL_TEXT2);
 
 	draw_header("Now Playing");
-	draw_footer(G_A " Select   " G_L G_R " Skip   " G_X " Stop   " G_B " Back");
+	draw_footer(G_A " Select   " G_L G_R " Skip (hold: start / next)   " G_X " Stop");
 }
 
 static void settings_draw(void)

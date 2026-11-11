@@ -243,6 +243,14 @@ int main(int argc, char** argv)
 		// quit confirm while a download runs
 		press(K_UP); press(K_UP); press(K_A); idle(5); press(K_A); idle(5); press(K_DOWN); press(K_DOWN); press(K_A); idle(3); press(K_A); idle(3);
 		press(K_DOWN); press(K_A); idle(40);
+		// L / R: a tap skips time; holding L 3 s restarts; holding R 5 s plays the next episode.
+		printf("-- shoulder keys (expect: seek +30, then play of the next episode; seek -15, then seek 0)\n");
+		for (int i = 0; i < 330; i++) { Input h = {0}; h.held = K_R; if (i == 0) h.down = K_R; app_update(&h); plat_sleep_ms(16); }
+		frame(0); snapshot("hold_r_next");
+		for (int i = 0; i < 120; i++) { Input h = {0}; h.held = K_R; if (i == 0) h.down = K_R; app_update(&h); plat_sleep_ms(16); } // 2 s: too short
+		frame(0);
+		for (int i = 0; i < 200; i++) { Input h = {0}; h.held = K_L; if (i == 0) h.down = K_L; app_update(&h); plat_sleep_ms(16); }
+		frame(0); snapshot("hold_l_restart");
 		// START with a download running asks first; START again (confirm box open) must quit.
 		Episode big; memset(&big, 0, sizeof(big));
 		strcpy(big.id, "00000000000000aa"); strcpy(big.title, "Big test episode");
