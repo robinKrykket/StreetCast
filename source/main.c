@@ -158,9 +158,12 @@ int main(void)
 		Input in = {0};
 		u32 down = hidKeysDown(), held = hidKeysHeld(), up = hidKeysUp(), rep = hidKeysDownRepeat();
 		if (!open) {
-			// Lid shut: ignore every button, the shoulder buttons included, so nothing skips
-			// by accident in a pocket or bag.
-			down = held = up = rep = 0;
+			// Lid shut: ignore every button so nothing skips by accident in a pocket or bag,
+			// unless the user opted in to keeping the shoulder buttons (the only ones
+			// reachable on a closed console) active. The setting is read here every frame, so
+			// a change takes effect the next time the lid closes.
+			u32 mask = settings.lid_buttons ? (KEY_L | KEY_R | KEY_ZL | KEY_ZR) : 0;
+			down &= mask; held &= mask; up &= mask; rep &= mask;
 		}
 		in.down = map_keys(down);
 		in.held = map_keys(held);

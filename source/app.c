@@ -1055,20 +1055,21 @@ static void apply_theme(void)
 	if (dark != ui_is_dark()) ui_set_dark(dark);
 }
 
-#define SETTINGS_ROWS 5
+#define SETTINGS_ROWS 6
 
 static void settings_input(void)
 {
 	int act = list_input(SCR_SETTINGS, SETTINGS_ROWS);
 	if (act == 0) settings.theme = (settings.theme + 1) % 3;
-	else if (act == 1) {
+	else if (act == 1) settings.lid_buttons = !settings.lid_buttons;
+	else if (act == 2) {
 		settings.verify_tls = !settings.verify_tls;
 		net_verify_tls = settings.verify_tls;
-	} else if (act == 2) settings.skip_back = next_opt(skip_back_opts, 3, settings.skip_back);
-	else if (act == 3) settings.skip_fwd = next_opt(skip_fwd_opts, 4, settings.skip_fwd);
-	else if (act == 4)
+	} else if (act == 3) settings.skip_back = next_opt(skip_back_opts, 3, settings.skip_back);
+	else if (act == 4) settings.skip_fwd = next_opt(skip_fwd_opts, 4, settings.skip_fwd);
+	else if (act == 5)
 		msg("StreetCast " APP_VERSION, "A podcast player for Nintendo 3DS. Your podcasts and downloads live in /3ds/StreetCast on the SD card.");
-	if (act >= 0 && act < 4) {
+	if (act >= 0 && act < 5) {
 		apply_theme();
 		settings_touch();
 		store_flush();
@@ -1529,13 +1530,17 @@ static void settings_draw(void)
 {
 	char val[SETTINGS_ROWS][24];
 	snprintf(val[0], 24, "%s", settings.theme == THEME_DARK ? "Dark" : settings.theme == THEME_AUTO ? "Auto" : "Light");
-	snprintf(val[1], 24, "%s", settings.verify_tls ? "On" : "Off");
-	snprintf(val[2], 24, "%d seconds", settings.skip_back);
-	snprintf(val[3], 24, "%d seconds", settings.skip_fwd);
-	snprintf(val[4], 24, "v" APP_VERSION);
-	static const char* names[SETTINGS_ROWS] = {"Theme", "Verify HTTPS", "Skip back (" G_L ")", "Skip forward (" G_R ")", "About StreetCast"};
+	snprintf(val[1], 24, "%s", settings.lid_buttons ? "On" : "Off");
+	snprintf(val[2], 24, "%s", settings.verify_tls ? "On" : "Off");
+	snprintf(val[3], 24, "%d seconds", settings.skip_back);
+	snprintf(val[4], 24, "%d seconds", settings.skip_fwd);
+	snprintf(val[5], 24, "v" APP_VERSION);
+	static const char* names[SETTINGS_ROWS] = {
+		"Theme", G_L " / " G_R " with lid closed", "Verify HTTPS", "Skip back (" G_L ")", "Skip forward (" G_R ")", "About StreetCast",
+	};
 	static const char* notes[SETTINGS_ROWS] = {
-		"Light, dark, or auto (dark from 5pm to 8am)", "Turn off only if feeds fail with a security error", "How far the rewind button jumps",
+		"Light, dark, or auto (dark from 5pm to 8am)", "Skip buttons keep working when shut",
+		"Turn off only if feeds fail with a security error", "How far the rewind button jumps",
 		"How far the forward button jumps", "Version and where your files are kept",
 	};
 	for (int i = 0; i < SETTINGS_ROWS; i++) {

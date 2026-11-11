@@ -33,7 +33,7 @@ and please open an issue with a photo of any error (network errors end in a code
   one at a time, show progress, and resume where they stopped.
 - **Lid-closed listening**: with headphones plugged in, playback (and downloads) continue with
   the console shut and the screens off. Buttons are ignored while it is shut, so nothing skips
-  in a pocket.
+  in a pocket; you can opt in to keeping L and R active when closed in Settings.
 - **Remembers your place** in every episode, and marks finished episodes as played.
 - **Search inside a list**: filter a podcast's episodes, or your downloads, by words in the
   title or description.
@@ -79,8 +79,10 @@ breaks secure (HTTPS) connections.
 In a search, **B** clears it. START asks before quitting if downloads are running.
 
 "Next episode" means the one listed below the playing episode in the list you started it from
-(the next older episode in a podcast, or the next item in Downloads). L and R do nothing while
-the lid is closed.
+(the next older episode in a podcast, or the next item in Downloads).
+
+L and R do nothing while the lid is closed unless you turn on **Settings > L / R with lid
+closed**. With it on, the same presses and holds work on a closed console.
 
 ### Adding podcasts from a computer
 
@@ -109,7 +111,7 @@ Everything lives in `/3ds/StreetCast/` on the SD card:
 | `state.tsv` | Resume positions and played marks |
 | `downloads.tsv`, `episodes/` | Downloaded episodes |
 | `cache/` | Cached episode lists |
-| `settings.txt` | Settings |
+| `settings.txt` | Settings (saved whenever you change one, loaded at start-up) |
 
 StreetCast only reads and writes inside that folder. It does not touch system storage.
 
@@ -144,6 +146,7 @@ list from <https://curl.se/ca/cacert.pem>; refresh it occasionally.
 The portable parts build and run on a desktop:
 
 - `tests/run.sh` checks the feed parser, networking and stream buffering against live feeds.
+- `tests/settings.sh` checks that every setting is still there after closing and reopening.
 - `tests/preview.sh` (macOS) runs the real app logic end to end with a CoreGraphics renderer
   and a simulated audio player, and writes screenshots to `tests/out/shots/`.
 

@@ -30,6 +30,7 @@ typedef struct {
 	bool verify_tls;
 	int skip_back, skip_fwd; // seconds
 	int theme;               // THEME_LIGHT / THEME_DARK / THEME_AUTO
+	bool lid_buttons;        // opt-in: L / R keep working while the lid is closed
 } Settings;
 
 extern Sub subs[MAX_SUBS];

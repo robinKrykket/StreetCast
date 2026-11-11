@@ -254,6 +254,8 @@ int main(int argc, char** argv)
 		press(K_SELECT); idle(10); snapshot("player_dark"); press(K_B); idle(3);
 		press(K_B); press(K_B); idle(3); press(K_DOWN); press(K_DOWN); press(K_A); idle(5);
 		settings.theme = THEME_LIGHT; fake_hour = 12; idle(70);
+		press(K_DOWN); press(K_A); idle(5); printf("lid_buttons=%d (want 1)\n", settings.lid_buttons); snapshot("settings_lid_buttons");
+		press(K_A); idle(3); printf("lid_buttons=%d (want 0)\n", settings.lid_buttons); press(K_A); idle(3);
 		press(K_DOWN); press(K_DOWN); press(K_DOWN); press(K_DOWN); press(K_A); idle(5); snapshot("about");
 		press(K_A); press(K_B);
 		// quit confirm while a download runs
